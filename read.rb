@@ -23,15 +23,18 @@ OptionParser.new do |opt|
 
 end.parse!
 
-result = Post.find(options[:limit], options[:type], options[:id])
+# Если не передали в консоли параметр id, то ищем все записи
+if options[:id].nil?
+  result = Post.find_all(options[:limit], options[:type])
+else
+  # Если передали в консоли параметр id, то выводим данные по этому id
+  result = Post.find_by_id(options[:id])
+end
 
 # показываем конкретный пост
 if result.is_a? Post
   puts "Запись #{result.class.name}, id = #{options[:id]}"
-  # выведем весь пост на экран и закроемся
-  result.to_strings.each do |line|
-    puts line
-  end
+  result.to_strings.each { |line| puts line }
 
 # показываем таблицу результатов
 else

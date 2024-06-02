@@ -65,6 +65,12 @@ class Post
     # todo: дочерние классы должны дополнять этот хэш массив своими полями
   end
 
+    # Получает на вход хэш массив данных и должен заполнить свои поля
+    def load_data(data_hash)
+      @created_at = Time.parse(data_hash['created_at'])
+      #  todo: остальные специфичные поля должны заполнить дочерние классы
+    end
+
   # Метод, сохраняющий состояние объекта в БД
   def save_to_db
     db = SQLite3::Database.open(@@SQLITE_DB_FILE) # открываем соединение к базе SQLite
@@ -92,64 +98,56 @@ class Post
     return insert_id
   end
 
-  # Находит в базе запись по идентификатору или массив записей
-  # из базы данных, который можно например показать в виде таблицы на экране
-  def self.find(limit, type, id)
+  # Находит в базе запись по идентификатору или массив записей из базы данных,
+  # который можно например показать в виде таблицы на экране
+  def self.find_by_id(id)
     db = SQLite3::Database.open(@@SQLITE_DB_FILE)
+    db.results_as_hash = true
 
-    # 1. конкретная запись
-    if !id.nil?
-      db.results_as_hash = true
-      # выполняем наш запрос, он возвращает массив результатов, в нашем случае из одного элемента
-      result = db.execute("SELECT * FROM posts WHERE id = ?", id)
-      # получаем единственный результат (если вернулся массив)
-      result = result[0] if result.is_a? Array
-      db.close
+    # выполняем наш запрос, он возвращает массив результатов, в нашем случае из одного элемента
+    result = db.execute("SELECT * FROM posts WHERE id = ?", id)
+    # получаем единственный результат (если вернулся массив)
+    result = result[0] if result.is_a? Array
+    db.close
 
-      if result.empty?
-        puts "Такой id #{id} не найден в базе :("
-        return nil
-      else
-        # создаем с помощью нашего же метода create экземпляр поста и будем его наполнять с помощью метода load_data;
-        # тип поста мы взяли из массива результатов [:type];
-        # номер этого типа в нашем массиве post_type нашли с помощью метода Array#find_index
-        post = create(result['type'])
-
-        #   заполним этот пост содержимым
-        post.load_data(result)
-
-        # и вернем его
-        return post
-      end
-
-    # 2. таблица записей
-    # эта ветвь выполняется если не передан идентификатор
+    if result.empty?
+      puts "Такой id #{id} не найден в базе :("
+      return nil
     else
-      db.results_as_hash = false
+      # создаем с помощью нашего же метода create экземпляр поста и будем его наполнять с помощью метода load_data;
+      # тип поста мы взяли из массива результатов [:type];
+      # номер этого типа в нашем массиве post_type нашли с помощью метода Array#find_index
+      post = create(result['type'])
 
-      # формируем запрос в базу с нужными условиями
-      query = "SELECT * FROM posts "
-      query += "WHERE type = :type " unless type.nil? # если задан тип, надо добавить условие
-      query += "ORDER by id DESC "
-      query += "LIMIT :limit " unless limit.nil? # если задан лимит, надо добавить условие
+      #   заполним этот пост содержимым
+      post.load_data(result)
 
-      # готовим запрос в базу
-      statement = db.prepare(query)
-      statement.bind_param('type', type) unless type.nil? # загружаем в запрос тип вместо плейсхолдера
-      statement.bind_param('limit', limit) unless limit.nil? # загружаем  в запрос лимит вместо плейсхолдера
-
-      result = statement.execute! #(query) # выполняем
-
-      statement.close
-      db.close
-
-      return result
+      # и вернем его
+      return post
     end
   end
 
-  # Получает на вход хэш массив данных и должен заполнить свои поля
-  def load_data(data_hash)
-    @created_at = Time.parse(data_hash['created_at'])
-    #  todo: остальные специфичные поля должны заполнить дочерние классы
+  # Находит в базе все записи по указанным параметрам и выводит их
+  def self.find_all(limit, type)
+    db = SQLite3::Database.open(@@SQLITE_DB_FILE)
+    db.results_as_hash = false
+
+    # формируем запрос в базу с нужными условиями
+    query = "SELECT * FROM posts "
+    query += "WHERE type = :type " unless type.nil? # если задан тип, надо добавить условие
+    query += "ORDER by id DESC "
+    query += "LIMIT :limit " unless limit.nil? # если задан лимит, надо добавить условие
+
+    # готовим запрос в базу
+    statement = db.prepare(query)
+    statement.bind_param('type', type) unless type.nil? # загружаем в запрос тип вместо плейсхолдера
+    statement.bind_param('limit', limit) unless limit.nil? # загружаем  в запрос лимит вместо плейсхолдера
+
+    result = statement.execute! #(query) # выполняем
+
+    statement.close
+    db.close
+
+    return result
   end
 end
