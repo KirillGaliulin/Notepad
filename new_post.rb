@@ -1,7 +1,9 @@
-require_relative 'post'
-require_relative 'memo'
-require_relative 'task'
-require_relative 'link'
+# Программа для сохранения новой записи в БД
+
+require_relative './lib/post'
+require_relative './lib/memo'
+require_relative './lib/task'
+require_relative './lib/link'
 
 puts "Привет, я твой блокнот! Версия 2 + Sqlite"
 puts "Что хотите записать в блокнот?"
@@ -9,8 +11,7 @@ puts "Что хотите записать в блокнот?"
 choices = Post.post_types.keys
 choice = -1
 
-# Пока юзер не выбрал правильно (от 0 до длины массива вариантов), спрашиваем
-# у него число и выводим список возможных вариантов для записи.
+# Пока не выбран один из существующих типов записи, спрашиваем пользователя
 until choice >= 0 && choice < choices.size
   choices.each_with_index do |type, index|
     puts "\t#{index}. #{type}"
